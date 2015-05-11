@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<meta id="light_acl" label="CONF_MESSAGE[Light ACL]" description="CONF_MESSAGE[Light ACL]" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:noNamespaceSchemaLocation="file:../core.ajaxplorer/ajxp_registry.xsd">
+    <class_definition filename="plugins/meta.lightacl/class.LightACLManager.php" classname="LightACLManager"/>
+   	<client_settings icon="plugins/access.mysql/resources/images/mysql_icon.png">
+   		<resources>
+   			<i18n namespace="meta.lightacl" path="plugins/meta.lightacl/i18n" />
+   		</resources>
+   	</client_settings>
+   	<registry_contributions>
+   		<hooks>
+   			<serverCallback hookName="node.before_change" methodName="beforeChange"></serverCallback>
+   			<serverCallback hookName="node.before_path_change" methodName="beforeChangePath"></serverCallback>
+   			<serverCallback hookName="node.read" methodName="read"></serverCallback>
+   		</hooks>
+        <actions>
+	<action name="lacl_addperm">
+            <gui text="add ACL" title="add ACL" src="" iconClass="icon-check" accessKey="" hasAccessKey="false">
+		<context dir="true" recycle="false" selection="true" contextMenu="true" actionBar="true"
+                             actionBarGroup="more" />
+                    <selectionContext dir="true" file="true" recycle="false" unique="true"/>
+            </gui>
+            <rightsContext noUser="false" userLogged="only" read="true" write="true" adminOnly="true"/>
+            <processing>
+                <clientCallback prepareModal="true"><![CDATA[
+		    modal.showDialogForm('Create', 'addacl_form', null, function(){
+                        var oForm = $(modal.getForm());
+                        ajaxplorer.actionBar.submitForm(oForm);
+                        hideLightBox(true);
+                        return false;
+                    });
+                    ]]></clientCallback>
+                <clientForm id="addacl_form"><![CDATA[
+                <div id="addacl_form" action="lacl_addperm" box_width="200">
+                <div class="dialogLegend" ajxp_message_id="173">login</div>
+                <input type="text" name="login" size="30" class="dialogFocus">
+                <div class="dialogLegend" ajxp_message_id="173">perm</div>
+                <input type="text" name="perm" size="30" class="dialogFocus">
+                <div class="dialogLegend" style="padding-top:20px;" id="alt_mkfile">
+			<span class="icon-chevron-right"></span>0: No access<br/>
+			<span class="icon-chevron-right"></span>1: No write<br/>
+			<span class="icon-chevron-right"></span>2: No change to default repository rights
+		</div>
+                </div>
+                ]]></clientForm>
+                <serverCallback methodName="applyChangePerms" restParams="/node+" checkParams="false" developerComment="adds an entry in ACL table">
+		    <input_param description="Node" name="node" type="path" mandatory="true"/>
+                    <input_param description="Login" name="login" type="string" mandatory="true"/>
+                    <input_param description="Perm" name="perm" type="string" mandatory="true"/>
+                </serverCallback>
+            </processing>
+        </action>
+        </actions>
+    </registry_contributions>
+</meta>
