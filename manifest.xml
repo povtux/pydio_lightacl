@@ -23,8 +23,15 @@
             <rightsContext noUser="false" userLogged="only" read="true" write="true" adminOnly="true"/>
             <processing>
                 <clientCallback prepareModal="true"><![CDATA[
-		    modal.showDialogForm('Create', 'addacl_form', null, function(){
+		    var userSelection =  ajaxplorer.getUserSelection();
+                    var loadFunc = function(){
                         var oForm = $(modal.getForm());
+                        ajaxplorer.actionBar.propertyPane = new PropertyPanel(userSelection, oForm);
+                    };
+
+		    modal.showDialogForm('Light ACL', 'addacl_form', loadFunc, function(){
+                        var oForm = $(modal.getForm());
+                        userSelection.updateFormOrUrl(oForm);
                         ajaxplorer.actionBar.submitForm(oForm);
                         hideLightBox(true);
                         return false;
@@ -33,7 +40,7 @@
                 <clientForm id="addacl_form"><![CDATA[
                 <div id="addacl_form" action="lacl_addperm" box_width="200">
                 <div class="dialogLegend" ajxp_message_id="173">login</div>
-                <input type="text" name="login" size="30" class="dialogFocus">
+                <input type="text" name="usr" size="30" class="dialogFocus">
                 <div class="dialogLegend" ajxp_message_id="173">perm</div>
                 <input type="text" name="perm" size="30" class="dialogFocus">
                 <div class="dialogLegend" style="padding-top:20px;" id="alt_mkfile">
@@ -43,9 +50,9 @@
 		</div>
                 </div>
                 ]]></clientForm>
-                <serverCallback methodName="applyChangePerms" restParams="/node+" checkParams="false" developerComment="adds an entry in ACL table">
-		    <input_param description="Node" name="node" type="path" mandatory="true"/>
-                    <input_param description="Login" name="login" type="string" mandatory="true"/>
+                <serverCallback methodName="applyChangePerms" restParams="/file+" checkParams="false" developerComment="adds an entry in ACL table">
+		    <input_param description="Node" name="file" type="path" mandatory="true"/>
+                    <input_param description="Login" name="usr" type="string" mandatory="true"/>
                     <input_param description="Perm" name="perm" type="string" mandatory="true"/>
                 </serverCallback>
             </processing>

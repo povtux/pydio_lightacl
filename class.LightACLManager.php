@@ -16,23 +16,6 @@ defined('AJXP_EXEC') or die('Access not allowed');
  */
 class LightACLManager extends AJXP_AbstractMetaSource
 {
-//    const METADATA_LOCK_NAMESPACE = "lightacl";
-    /**
-    * @var MetaStoreProvider
-    */
-/*    protected $metaStore;
-
-    public function initMeta($accessDriver)
-    {
-        parent::initMeta($accessDriver);
-        $store = AJXP_PluginsService::getInstance()->getUniqueActivePluginForType("metastore");
-        if ($store === false) {
-            throw new Exception("The 'meta.lightacl' plugin requires at least one active 'metastore' plugin");
-        }
-        $this->metaStore = $store;
-        $this->metaStore->initMeta($accessDriver);
-    }
-
     /**
      * @param string $action
      * @param array $httpVars
@@ -40,10 +23,6 @@ class LightACLManager extends AJXP_AbstractMetaSource
      */
     public function applyChangePerms($actionName, $httpVars, $fileVars)
     {
-$f=fopen('/tmp/lightacl.log', 'a');
-fwrite($f, print_r($actionName, true));
-fwrite($f, print_r($httpVars, true));
-fwrite($f, print_r($fileVars, true));
         if(!isSet($this->actions[$actionName])) return;
         if (is_a($this->accessDriver, "demoAccessDriver")) {
             throw new Exception("Write actions are disabled in demo mode!");
@@ -59,15 +38,17 @@ fwrite($f, print_r($fileVars, true));
         $wrapperData = $this->accessDriver->detectStreamWrapper(false);
         $urlBase = $wrapperData["protocol"]."://".$this->accessDriver->repository->getId();
 
-
-fwrite($f, print_r($currentFile, true));
-fclose($f);
-	dibi::query('INSERT INTO [light_acl]', Array(
-		'unikey' => md5($user . $urlBase . $currentFile),
-                'login' => 'admin',
-                'path' => $urlBase.$currentFile,
-                'accessright' => 0
-            ));
+	$unikey = hash('sha256', $httpVars['usr'] . $urlBase . $currentFile);
+	try {
+		dibi::query('INSERT INTO [light_acl]', Array(
+			'unikey' => $unikey,
+                	'login' => $httpVars['usr'],
+	                'path' => $urlBase.$currentFile,
+        	        'accessright' => $httpVars['perm']
+	            ));
+	} catch(Exception $e) {
+		dibi::query("UPDATE light_acl SET accessright=" . $httpVars['perm'] . " WHERE unikey='" . $unikey . "'");
+	}
 
         AJXP_XMLWriter::header();
         AJXP_XMLWriter::reloadDataNode();
@@ -112,15 +93,16 @@ fclose($f);
 	*/
 	private function getAccessRights($node)
 	{
+		$user = AuthService::getLoggedUser()->getId();
 		// découpage du path pour les différentes combinaisons possibles
-		$search = array($node->getUrl());
+		$search = array(hash('sha256', $user . $node->getUrl()));
 		$nd = $node;
 		do {
 			$nd = $nd->getParent();
-			if($nd != null) $search[] = $nd->getUrl();
+			if($nd != null) $search[] = hash('sha256', $user . $nd->getUrl());
 		} while($nd != null);
 
-		$query = "SELECT accessright FROM light_acl WHERE login = '". AuthService::getLoggedUser()->getId() ."' AND path IN('". implode("','", $search) ."') ORDER BY CHAR_LENGTH(path) DESC";
+		$query = "SELECT accessright FROM light_acl WHERE unikey IN('". implode("','", $search) ."') ORDER BY CHAR_LENGTH(path) DESC";
 
 		$result_rights = dibi::query($query);
 		$testRight = $result_rights->fetchSingle();
